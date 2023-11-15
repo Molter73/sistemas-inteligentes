@@ -1,0 +1,25 @@
+repos:
+- repo: https://github.com/PyCQA/autoflake
+  rev: v2.2.1
+  hooks:
+    - id: autoflake
+      args: [--remove-all-unused-imports, --remove-unused-variables, --in-place]
+- repo: https://github.com/PyCQA/isort
+  rev: 5.11.5
+  hooks:
+    - id: isort
+- repo: https://github.com/psf/black
+  rev: '23.11.0'
+  hooks:
+    - id: black
+      args: [--check, -l 80]
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.7.0
+  hooks:
+    - id: mypy
+- repo: https://github.com/PyCQA/flake8
+  rev: '6.1.0'
+  hooks:
+    - id: flake8
+      args: ['--ignore=E501,W503,E203,E402']
+
