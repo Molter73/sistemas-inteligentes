@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from time import time
 from typing import Dict, List
 
-from ..indexer.indexer import Index
+from ..indexer.indexer import Index  # type: ignore
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Result:
     snippet: str
 
     def __str__(self) -> str:
-        print(f"{self.url} -> {self.snippet}")
+        return f"{self.url} -> {self.snippet}"
 
 
 class Retriever:
@@ -46,6 +46,7 @@ class Retriever:
             List[Result]: lista de resultados que cumplen la consulta
         """
         ...
+        return []
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
         """Método para hacer consultas desde fichero.
@@ -58,9 +59,15 @@ class Retriever:
         """
         with open(fname, "r") as fr:
             ts = time()
+
+            # Las siguientes dos líneas son para dejar feliz a los linters,
+            # eliminarlas al implementar la versión final del código.
+            n_queries = 0
+            fr.read()
             ...
             te = time()
-            print(f"Time to solve {n_queries}: {te-ts}")
+            print(f"Time to solve {n_queries}: {te - ts}")
+        return {}
 
     def load_index(self) -> Index:
         """Método para cargar un índice invertido desde disco."""
@@ -79,6 +86,7 @@ class Retriever:
             List[int]: posting list de la intersección
         """
         ...
+        return []
 
     def _or_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
         """Método para calcular la unión de dos posting lists.
@@ -92,6 +100,7 @@ class Retriever:
             List[int]: posting list de la unión
         """
         ...
+        return []
 
     def _not_(self, posting_a: List[int]) -> List[int]:
         """Método para calcular el complementario de una posting list.
@@ -104,3 +113,4 @@ class Retriever:
             List[int]: complementario de la posting list
         """
         ...
+        return []
