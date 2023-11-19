@@ -24,7 +24,7 @@ class Crawler:
         - "text": Contenido completo (en crudo, sin parsear) de la web
         """
 
-        queue = Queue()
+        queue: Queue = Queue()
         queue.put(self.args.url)
         while ...:
             ...
@@ -42,3 +42,4 @@ class Crawler:
             Set[str]: conjunto de urls (únicas) extraídas de la web
         """
         ...
+        return set()

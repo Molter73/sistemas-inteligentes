@@ -103,6 +103,7 @@ class Indexer:
             str: texto parseado
         """
         ...
+        return ""
 
     def tokenize(self, text: str) -> List[str]:
         """Método para tokenizar un texto. Esto es, convertir
@@ -116,6 +117,7 @@ class Indexer:
             List[str]: lista de palabras del documento
         """
         ...
+        return []
 
     def remove_stopwords(self, words: List[str]) -> List[str]:
         """Método para eliminar stopwords después del tokenizado.
@@ -127,6 +129,7 @@ class Indexer:
             List[str]: lista de palabras del documento, sin stopwords
         """
         ...
+        return []
 
     def remove_punctuation(self, text: str) -> str:
         """Método para eliminar signos de puntuación de un texto:
@@ -138,6 +141,7 @@ class Indexer:
             str: texto del documento sin signos de puntuación.
         """
         ...
+        return ""
 
     def remove_elongated_spaces(self, text: str) -> str:
         """Método para eliminar espacios duplicados.
