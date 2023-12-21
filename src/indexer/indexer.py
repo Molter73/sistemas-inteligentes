@@ -3,6 +3,10 @@ from argparse import Namespace
 from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List
+import os
+import json
+import nltk
+from bs4 import BeautifulSoup
 
 
 @dataclass
@@ -82,7 +86,34 @@ class Indexer:
         """
         # Indexing
         ts = time()
-        ...
+        doc_id = 0
+        
+        for filename in os.listdir(self.args.input_folder):
+            if filename.endswith(".json"):
+                with open(os.path.join(self.args.input_folder, filename), 'r') as file:
+                    data = json.load(file)
+                    parsed_text = self.parse(data['text'])
+                    parsed_text = self.remove_split_symbols(parsed_text)
+                    parsed_text = self.remove_punctuation(parsed_text)
+                    parsed_text = self.remove_elongated_spaces(parsed_text)
+                    tokens = self.tokenize(parsed_text)
+                    tokens = self.remove_stopwords(tokens)
+
+                    document = Document(
+                        id=doc_id,
+                        title=data['url'],
+                        url=data['url'],
+                        text=" ".join(tokens)
+                    )
+                    self.index.documents.append(document)
+
+                    for word in set(tokens):
+                        if word not in self.index.postings:
+                            self.index.postings[word] = []
+                        self.index.postings[word].append(doc_id)
+
+                    doc_id += 1
+        
         te = time()
 
         # Save index
@@ -95,74 +126,48 @@ class Indexer:
         """Método para extraer el texto de un documento.
         Puedes utilizar la librería 'beautifulsoup' para extraer solo
         el texto del bloque principal de una página web (lee el pdf de la
-        actividad para más detalles)
+        actividad para más detalles)"""
 
-        Args:
-            text (str): texto de un documento
-        Returns:
-            str: texto parseado
-        """
-        ...
-        return ""
+        soup = BeautifulSoup(text, 'html.parser')
+        main_content = soup.find('div', class_='page')
+        texts = []
+        for tag in main_content.find_all(['h1', 'h2', 'h3', 'b', 'i', 'p', 'a']):
+            texts.append(tag.get_text())
+        return ' '.join(texts)
 
     def tokenize(self, text: str) -> List[str]:
         """Método para tokenizar un texto. Esto es, convertir
         un texto a una lista de palabras. Puedes utilizar tokenizers
         existentes en NLTK, Spacy, etc. O simplemente separar por
-        espacios en blanco.
+        espacios en blanco."""
 
-        Args:
-            text (str): text de un documento
-        Returns:
-            List[str]: lista de palabras del documento
-        """
-        ...
-        return []
+        return text.lower().split()
 
     def remove_stopwords(self, words: List[str]) -> List[str]:
         """Método para eliminar stopwords después del tokenizado.
-        Puedes usar cualquier lista de stopwords, e.g., de NLTK.
+        Puedes usar cualquier lista de stopwords, e.g., de NLTK."""
 
-        Args:
-            words (List[str]): lista de palabras de un documento
-        Returns:
-            List[str]: lista de palabras del documento, sin stopwords
-        """
-        ...
-        return []
+        stopwords = set(nltk.corpus.stopwords.words('spanish'))
+        return [word for word in words if word not in stopwords]
 
     def remove_punctuation(self, text: str) -> str:
         """Método para eliminar signos de puntuación de un texto:
-         < > ¿ ? , ; : . ( ) [ ] " ' ¡ !
+         < > ¿ ? , ; : . ( ) [ ] " ' ¡ !"""
 
-        Args:
-            text (str): texto de un documento
-        Returns:
-            str: texto del documento sin signos de puntuación.
-        """
-        ...
-        return ""
+        punctuation = '<>¿?,;:.()[]"\'¡!'
+        return ''.join(char for char in text if char not in punctuation)  
 
     def remove_elongated_spaces(self, text: str) -> str:
         """Método para eliminar espacios duplicados.
-        E.g., "La     Universidad    Europea" --> "La Universidad Europea"
+        E.g., "La     Universidad    Europea" --> "La Universidad Europea" """
 
-        Args:
-            text (str): texto de un documento
-        Returns:
-            str: texto sin espacios duplicados
-        """
         return " ".join(text.split())
 
     def remove_split_symbols(self, text: str) -> str:
         """Método para eliminar símbolos separadores como
-        saltos de línea, retornos de carro y tabuladores.
+        saltos de línea, retornos de carro y tabuladores."""
 
-        Args:
-            text (str): texto de un documento
-        Returns:
-            str: texto sin símbolos separadores
-        """
+        
         return text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
 
     def show_stats(self, building_time: float) -> None:
