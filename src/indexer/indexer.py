@@ -70,6 +70,7 @@ class Indexer:
         self.index = Index()
         self.stats = Stats()
         self.doc_id = 0
+        nltk.download("stopwords")
 
     def _build_index(self, dir):
         for curr, dirs, files in os.walk(dir):
@@ -125,7 +126,7 @@ class Indexer:
         te = time()
 
         # Save index
-        self.index.save(self.args.output_name)
+        self.index.save(os.path.join(self.args.output_name, "index"))
 
         # Show stats
         self.show_stats(building_time=te - ts)
