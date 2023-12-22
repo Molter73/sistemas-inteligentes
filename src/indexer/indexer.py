@@ -95,13 +95,12 @@ class Indexer:
                             text=" ".join(tokens),
                         )
                         self.index.documents.append(document)
+                        self.doc_id += 1
 
                         for word in set(tokens):
                             if word not in self.index.postings:
                                 self.index.postings[word] = []
                                 self.index.postings[word].append(self.doc_id)
-
-                            self.doc_id += 1
 
     def build_index(self) -> None:
         """Método para construir un índice.
@@ -135,8 +134,13 @@ class Indexer:
         """Método para extraer el texto de un documento.
         Puedes utilizar la librería 'beautifulsoup' para extraer solo
         el texto del bloque principal de una página web (lee el pdf de la
-        actividad para más detalles)"""
+        actividad para más detalles)
 
+        Args:
+            text (str): texto de un documento
+        Returns:
+            str: texto parseado
+        """
         soup = BeautifulSoup(text, "html.parser")
         main_content = soup.find("div", class_="page")
         texts = []
@@ -150,34 +154,61 @@ class Indexer:
         """Método para tokenizar un texto. Esto es, convertir
         un texto a una lista de palabras. Puedes utilizar tokenizers
         existentes en NLTK, Spacy, etc. O simplemente separar por
-        espacios en blanco."""
+        espacios en blanco.
+
+        Args:
+            text (str): text de un documento
+        Returns:
+            List[str]: lista de palabras del documento
+        """
 
         return text.lower().split()
 
     def remove_stopwords(self, words: List[str]) -> List[str]:
         """Método para eliminar stopwords después del tokenizado.
-        Puedes usar cualquier lista de stopwords, e.g., de NLTK."""
+        Puedes usar cualquier lista de stopwords, e.g., de NLTK.
+
+        Args:
+            words (List[str]): lista de palabras de un documento
+        Returns:
+            List[str]: lista de palabras del documento, sin stopwords
+        """
 
         stopwords = set(nltk.corpus.stopwords.words("spanish"))
         return [word for word in words if word not in stopwords]
 
     def remove_punctuation(self, text: str) -> str:
         """Método para eliminar signos de puntuación de un texto:
-        < > ¿ ? , ; : . ( ) [ ] " ' ¡ !"""
+        < > ¿ ? , ; : . ( ) [ ] " ' ¡ !
 
+        Args:
+            text (str): texto de un documento
+        Returns:
+            str: texto del documento sin signos de puntuación.
+        """
         punctuation = "<>¿?,;:.()[]\"'¡!"
         return "".join(char for char in text if char not in punctuation)
 
     def remove_elongated_spaces(self, text: str) -> str:
         """Método para eliminar espacios duplicados.
-        E.g., "La     Universidad    Europea" --> "La Universidad Europea" """
+        E.g., "La     Universidad    Europea" --> "La Universidad Europea"
 
+        Args:
+            text (str): texto de un documento
+        Returns:
+            str: texto sin espacios duplicados
+        """
         return " ".join(text.split())
 
     def remove_split_symbols(self, text: str) -> str:
         """Método para eliminar símbolos separadores como
-        saltos de línea, retornos de carro y tabuladores."""
+        saltos de línea, retornos de carro y tabuladores.
 
+        Args:
+            text (str): texto de un documento
+        Returns:
+            str: texto sin símbolos separadores
+        """
         return text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
 
     def show_stats(self, building_time: float) -> None:
