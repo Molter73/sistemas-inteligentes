@@ -1,10 +1,11 @@
+import json
+import os
 import pickle as pkl
 from argparse import Namespace
 from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List
-import os
-import json
+
 import nltk
 from bs4 import BeautifulSoup
 
@@ -68,6 +69,38 @@ class Indexer:
         self.args = args
         self.index = Index()
         self.stats = Stats()
+        self.doc_id = 0
+
+    def _build_index(self, dir):
+        for curr, dirs, files in os.walk(dir):
+            for d in dirs:
+                self._build_index(d)
+
+            for file in files:
+                if file.endswith(".json"):
+                    with open(os.path.join(curr, file), "r") as file:
+                        data = json.load(file)
+                        parsed_text = self.parse(data["text"])
+                        parsed_text = self.remove_split_symbols(parsed_text)
+                        parsed_text = self.remove_punctuation(parsed_text)
+                        parsed_text = self.remove_elongated_spaces(parsed_text)
+                        tokens = self.tokenize(parsed_text)
+                        tokens = self.remove_stopwords(tokens)
+
+                        document = Document(
+                            id=self.doc_id,
+                            title=data["url"],
+                            url=data["url"],
+                            text=" ".join(tokens),
+                        )
+                        self.index.documents.append(document)
+
+                        for word in set(tokens):
+                            if word not in self.index.postings:
+                                self.index.postings[word] = []
+                                self.index.postings[word].append(self.doc_id)
+
+                            self.doc_id += 1
 
     def build_index(self) -> None:
         """Método para construir un índice.
@@ -86,34 +119,9 @@ class Indexer:
         """
         # Indexing
         ts = time()
-        doc_id = 0
-        
-        for filename in os.listdir(self.args.input_folder):
-            if filename.endswith(".json"):
-                with open(os.path.join(self.args.input_folder, filename), 'r') as file:
-                    data = json.load(file)
-                    parsed_text = self.parse(data['text'])
-                    parsed_text = self.remove_split_symbols(parsed_text)
-                    parsed_text = self.remove_punctuation(parsed_text)
-                    parsed_text = self.remove_elongated_spaces(parsed_text)
-                    tokens = self.tokenize(parsed_text)
-                    tokens = self.remove_stopwords(tokens)
 
-                    document = Document(
-                        id=doc_id,
-                        title=data['url'],
-                        url=data['url'],
-                        text=" ".join(tokens)
-                    )
-                    self.index.documents.append(document)
+        self._build_index(self.args.input_folder)
 
-                    for word in set(tokens):
-                        if word not in self.index.postings:
-                            self.index.postings[word] = []
-                        self.index.postings[word].append(doc_id)
-
-                    doc_id += 1
-        
         te = time()
 
         # Save index
@@ -128,12 +136,14 @@ class Indexer:
         el texto del bloque principal de una página web (lee el pdf de la
         actividad para más detalles)"""
 
-        soup = BeautifulSoup(text, 'html.parser')
-        main_content = soup.find('div', class_='page')
+        soup = BeautifulSoup(text, "html.parser")
+        main_content = soup.find("div", class_="page")
         texts = []
-        for tag in main_content.find_all(['h1', 'h2', 'h3', 'b', 'i', 'p', 'a']):
+        for tag in main_content.find_all(
+            ["h1", "h2", "h3", "b", "i", "p", "a"]
+        ):
             texts.append(tag.get_text())
-        return ' '.join(texts)
+        return " ".join(texts)
 
     def tokenize(self, text: str) -> List[str]:
         """Método para tokenizar un texto. Esto es, convertir
@@ -147,15 +157,15 @@ class Indexer:
         """Método para eliminar stopwords después del tokenizado.
         Puedes usar cualquier lista de stopwords, e.g., de NLTK."""
 
-        stopwords = set(nltk.corpus.stopwords.words('spanish'))
+        stopwords = set(nltk.corpus.stopwords.words("spanish"))
         return [word for word in words if word not in stopwords]
 
     def remove_punctuation(self, text: str) -> str:
         """Método para eliminar signos de puntuación de un texto:
-         < > ¿ ? , ; : . ( ) [ ] " ' ¡ !"""
+        < > ¿ ? , ; : . ( ) [ ] " ' ¡ !"""
 
-        punctuation = '<>¿?,;:.()[]"\'¡!'
-        return ''.join(char for char in text if char not in punctuation)  
+        punctuation = "<>¿?,;:.()[]\"'¡!"
+        return "".join(char for char in text if char not in punctuation)
 
     def remove_elongated_spaces(self, text: str) -> str:
         """Método para eliminar espacios duplicados.
@@ -167,7 +177,6 @@ class Indexer:
         """Método para eliminar símbolos separadores como
         saltos de línea, retornos de carro y tabuladores."""
 
-        
         return text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
 
     def show_stats(self, building_time: float) -> None:
