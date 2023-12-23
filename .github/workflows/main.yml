@@ -17,6 +17,7 @@ jobs:
           cache: pip
       - run: |
           pip install --upgrade -r "${GITHUB_WORKSPACE}/dev-requirements.txt"
+          pip install --upgrade -r "${GITHUB_WORKSPACE}/requirements.txt"
           autoflake --remove-all-unused-imports --recursive --remove-unused-variables "src"
           isort --check "src"
 
@@ -29,6 +30,7 @@ jobs:
           cache: pip
       - run: |
           pip install --upgrade -r "${GITHUB_WORKSPACE}/dev-requirements.txt"
+          pip install --upgrade -r "${GITHUB_WORKSPACE}/requirements.txt"
           mypy "src"
           flake8 "src" --ignore=E501,W503,E203,E402
           black "src" --check -l 80
