@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from time import time
 from typing import Dict, List
 
-import nltk
-from bs4 import BeautifulSoup
+import nltk  # type: ignore
+from bs4 import BeautifulSoup, Tag
 
 
 @dataclass
@@ -143,12 +143,16 @@ class Indexer:
         """
         soup = BeautifulSoup(text, "html.parser")
         main_content = soup.find("div", class_="page")
-        texts = []
-        for tag in main_content.find_all(
-            ["h1", "h2", "h3", "b", "i", "p", "a"]
-        ):
-            texts.append(tag.get_text())
-        return " ".join(texts)
+
+        if isinstance(main_content, Tag):
+            texts = []
+            for tag in main_content.find_all(
+                ["h1", "h2", "h3", "b", "i", "p", "a"]
+            ):
+                texts.append(tag.get_text())
+            return " ".join(texts)
+
+        return ""
 
     def tokenize(self, text: str) -> List[str]:
         """Método para tokenizar un texto. Esto es, convertir
