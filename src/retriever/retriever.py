@@ -1,3 +1,4 @@
+import math
 import pickle as pkl
 from argparse import Namespace
 from dataclasses import dataclass
@@ -95,6 +96,8 @@ class Retriever:
         Return:
             Dict[str, List[Result]]: diccionario con resultados de cada consulta
         """
+        resultados = {}
+
         with open(fname, "r") as fr:
             ts = time()
 
@@ -102,10 +105,14 @@ class Retriever:
             # eliminarlas al implementar la versión final del código.
             n_queries = 0
             fr.read()
-            ...
+
+            for line in fr:
+                query = line.strip()
+                resultados[query] = self.search_query(query)
+
             te = time()
             print(f"Time to solve {n_queries}: {te - ts}")
-        return {}
+        return resultados
 
     def load_index(self) -> Index:
         """Método para cargar un índice invertido desde disco."""
@@ -123,8 +130,7 @@ class Retriever:
         Returns:
             List[int]: posting list de la intersección
         """
-        ...
-        return []
+        return list(set(posting_a) & set(posting_b))
 
     def _or_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
         """Método para calcular la unión de dos posting lists.
@@ -137,8 +143,7 @@ class Retriever:
         Returns:
             List[int]: posting list de la unión
         """
-        ...
-        return []
+        return list(sorted(set(posting_a) | set(posting_b)))
 
     def _not_(self, posting_a: List[int]) -> List[int]:
         """Método para calcular el complementario de una posting list.
@@ -150,5 +155,37 @@ class Retriever:
         Returns:
             List[int]: complementario de la posting list
         """
-        ...
-        return []
+        all_docs: set = set(self.index.ids_all_docs)
+        return list(all_docs - set(posting_a))
+
+    def score(
+        self, query: str, resultados: List[Result], N: float = 10.0
+    ) -> List[Result]:
+        score_results = []
+        for r in resultados:
+            score = self._calcular_tfidf_score(query, r)
+            score_results.append((r, score))
+
+        score_results.sort(key=lambda x: x[1], reverse=True)
+
+        return [r for r, _ in score_results[: int(N)]]
+
+    def _calcular_tfidf_score(self, query: str, resultado: Result) -> float:
+        score = 0.0
+        term_query = query.split()
+
+        """La variable ids_total_docs se sustituirá por la que contenga el 
+        indice de los archivos extraidos"""
+        total_files = len(self.index.ids_total_docs)
+        for term in term_query:
+            tf = resultado.snippet.lower().count(term.lower())
+            documentos_con_termino = self._contar_documentos(term)
+
+            if documentos_con_termino > 0:
+                idf = math.log(total_files / documentos_con_termino)
+                score += tf * idf
+
+        return score
+
+    def _contar_documentos(self, term: str) -> int:
+        return len(self.index.postings.get(term, []))
