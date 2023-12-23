@@ -95,6 +95,8 @@ class Retriever:
         Return:
             Dict[str, List[Result]]: diccionario con resultados de cada consulta
         """
+        resultados = {}
+
         with open(fname, "r") as fr:
             ts = time()
 
@@ -102,10 +104,14 @@ class Retriever:
             # eliminarlas al implementar la versión final del código.
             n_queries = 0
             fr.read()
-            ...
+
+            for line in fr:
+                query = line.strip()
+                resultados[query] = self.search_query(query)
+            
             te = time()
             print(f"Time to solve {n_queries}: {te - ts}")
-        return {}
+        return resultados
 
     def load_index(self) -> Index:
         """Método para cargar un índice invertido desde disco."""
@@ -123,8 +129,9 @@ class Retriever:
         Returns:
             List[int]: posting list de la intersección
         """
-        ...
-        return []
+        posting_a : set = set()
+        posting_b : set = set()
+        return list(posting_a.intersection(posting_b))
 
     def _or_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
         """Método para calcular la unión de dos posting lists.
@@ -137,8 +144,9 @@ class Retriever:
         Returns:
             List[int]: posting list de la unión
         """
-        ...
-        return []
+        posting_a : set = set()
+        posting_b : set = set()
+        return list(sorted(posting_a.union(posting_b)))
 
     def _not_(self, posting_a: List[int]) -> List[int]:
         """Método para calcular el complementario de una posting list.
@@ -150,5 +158,7 @@ class Retriever:
         Returns:
             List[int]: complementario de la posting list
         """
-        ...
-        return []
+        posting_a : set = set()
+        all_docs : set = set(self.index.ids_all_docs)
+        return list(all_docs - posting_a)
+    
