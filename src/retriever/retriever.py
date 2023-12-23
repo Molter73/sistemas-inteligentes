@@ -64,6 +64,8 @@ class Retriever:
         Return:
             Dict[str, List[Result]]: diccionario con resultados de cada consulta
         """
+        resultados = {}
+
         with open(fname, "r") as fr:
             ts = time()
 
@@ -71,10 +73,14 @@ class Retriever:
             # eliminarlas al implementar la versión final del código.
             n_queries = 0
             fr.read()
-            ...
+
+            for line in fr:
+                query = line.strip()
+                resultados[query] = self.search_query(query)
+
             te = time()
             print(f"Time to solve {n_queries}: {te - ts}")
-        return {}
+        return resultados
 
     def load_index(self) -> Index:
         """Método para cargar un índice invertido desde disco."""
