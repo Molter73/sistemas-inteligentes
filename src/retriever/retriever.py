@@ -1,3 +1,4 @@
+import math
 import pickle as pkl
 from argparse import Namespace
 from dataclasses import dataclass
@@ -86,3 +87,35 @@ class Retriever:
         """Método para cargar un índice invertido desde disco."""
         with open(self.args.index_file, "rb") as fr:
             return pkl.load(fr)
+
+    def score(
+        self, query: str, resultados: List[Result], N: float = 10.0
+    ) -> List[Result]:
+        score_results = []
+        for r in resultados:
+            score = self._calcular_tfidf_score(query, r)
+            score_results.append((r, score))
+
+        score_results.sort(key=lambda x: x[1], reverse=True)
+
+        return [r for r, _ in score_results[: int(N)]]
+
+    def _calcular_tfidf_score(self, query: str, resultado: Result) -> float:
+        score = 0.0
+        term_query = query.split()
+
+        """La variable ids_total_docs se sustituirá por la que contenga el
+        indice de los archivos extraidos"""
+        total_files = len(self.index.ids_total_docs)
+        for term in term_query:
+            tf = resultado.snippet.lower().count(term.lower())
+            documentos_con_termino = self._contar_documentos(term)
+
+            if documentos_con_termino > 0:
+                idf = math.log(total_files / documentos_con_termino)
+                score += tf * idf
+
+        return score
+
+    def _contar_documentos(self, term: str) -> int:
+        return len(self.index.postings.get(term, []))
