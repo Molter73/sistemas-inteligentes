@@ -25,6 +25,31 @@ class Retriever:
         self.args = args
         self.index = self.load_index()
 
+    def _search_query(self, query: List[str], left: List[int]) -> List[int]:
+        if len(query) == 0:
+            return left
+
+        right = []
+        token = query.pop(0)
+        if token == "AND":
+            if query[0] == "NOT":
+                query.pop(0)
+                right = self._not_(self.index.postings[query.pop(0)])
+            else:
+                right = self.index.postings[query.pop(0)]
+            left = self._and_(left, right)
+        elif token == "OR":
+            if query[0] == "NOT":
+                query.pop(0)
+                right = self._not_(self.index.postings[query.pop(0)])
+            else:
+                right = self.index.postings[query.pop(0)]
+            left = self._or_(left, right)
+        else:
+            raise RuntimeError("Parametro desconocido")
+
+        return self._search_query(query, left)
+
     def search_query(self, query: str) -> List[Result]:
         """Método para resolver una query.
         Este método debe ser capaz, al menos, de resolver consultas como:
@@ -45,7 +70,20 @@ class Retriever:
         Returns:
             List[Result]: lista de resultados que cumplen la consulta
         """
-        ...
+        import pdb
+
+        pdb.set_trace()
+        tokens = query.split()
+
+        left = []
+        if tokens[0] == "NOT":
+            tokens.pop(0)
+            left = self._not_(self.index.postings[tokens.pop(0)])
+        else:
+            left = self.index.postings[tokens.pop(0)]
+
+        self._search_query(tokens, left)
+
         return []
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
