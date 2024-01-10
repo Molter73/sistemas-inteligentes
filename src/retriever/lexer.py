@@ -4,9 +4,12 @@ WORD = 0
 AND = 1
 OR = 2
 NOT = 3
-DONE = 4
+LPAREN = 4
+RPAREN = 5
+DONE = 6
 
 _ignorable_whitespace = " \t"
+_delimiters = _ignorable_whitespace + "()"
 
 
 @dataclass
@@ -21,6 +24,8 @@ AndToken = Token(AND, "AND")
 OrToken = Token(OR, "OR")
 NotToken = Token(NOT, "NOT")
 DoneToken = Token(DONE, "")
+LParenToken = Token(LPAREN, "(")
+RParenToken = Token(RPAREN, ")")
 
 
 class Lexer:
@@ -46,10 +51,20 @@ class Lexer:
             self.cur_token = DoneToken
             return
 
+        if self.query[self.index] == "(":
+            self.index += 1
+            self.cur_token = LParenToken
+            return
+
+        if self.query[self.index] == ")":
+            self.index += 1
+            self.cur_token = RParenToken
+            return
+
         token = ""
         while (
             self.index < len(self.query)
-            and self.query[self.index] not in _ignorable_whitespace
+            and self.query[self.index] not in _delimiters
         ):
             token += self.query[self.index]
             self.index += 1
