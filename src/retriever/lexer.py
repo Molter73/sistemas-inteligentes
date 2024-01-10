@@ -29,6 +29,8 @@ class Lexer:
     def __init__(self, query):
         self.query = query
         self.index = 0
+        self.cur_token = None
+        self.next_token()
 
     def _eat_whitespace(self):
         while (
@@ -41,7 +43,8 @@ class Lexer:
         self._eat_whitespace()
 
         if self.index >= len(self.query):
-            return DoneToken
+            self.cur_token = DoneToken
+            return
 
         token = ""
         while (
@@ -52,9 +55,10 @@ class Lexer:
             self.index += 1
 
         if token == "AND":
-            return AndToken
-        if token == "OR":
-            return OrToken
-        if token == "NOT":
-            return NotToken
-        return Token(WORD, token)
+            self.cur_token = AndToken
+        elif token == "OR":
+            self.cur_token = OrToken
+        elif token == "NOT":
+            self.cur_token = NotToken
+        else:
+            self.cur_token = Token(WORD, token)
