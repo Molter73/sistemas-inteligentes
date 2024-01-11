@@ -75,7 +75,7 @@ class Indexer:
     def _build_index(self, dir):
         for curr, dirs, files in os.walk(dir):
             for d in dirs:
-                self._build_index(d)
+                self._build_index(os.path.join(curr, d))
 
             for file in files:
                 if file.endswith(".json"):
@@ -100,7 +100,7 @@ class Indexer:
                         for word in set(tokens):
                             if word not in self.index.postings:
                                 self.index.postings[word] = []
-                                self.index.postings[word].append(self.doc_id)
+                            self.index.postings[word].append(self.doc_id)
 
     def build_index(self) -> None:
         """Método para construir un índice.
