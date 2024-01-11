@@ -13,43 +13,60 @@ from .lexer import (
 
 class InvalidQueryException(Exception):
     def __init__(self, message):
-        super.__init__(f"Invalid query: {message}")
+        super().__init__(f"Invalid query: {message}")
 
 
 class Parser:
     def __init__(self, query):
         self.lexer = Lexer(query)
         self.depth = 0
+        self.cur_token = self.lexer.cur_token
+
+    def _next_token(self):
+        self.lexer.next_token()
+        self.cur_token = self.lexer.cur_token
+
+    def _parse_word_node(self):
+        if self.cur_token.type != WORD:
+            raise InvalidQueryException(
+                f"Expected WORD, got {self.cur_token.value}"
+            )
+
+        node = WordNode(self.cur_token.value)
+        self._next_token()
+
+        return node
 
     def _parse_not_node(self):
-        token = self.lexer.cur_token
-        if token.type != WORD:
-            raise InvalidQueryException(f"Expected WORD, got {token.value}")
+        self._next_token()
 
-        return NotNode(WordNode(token.value))
+        return NotNode(self._parse_word_node())
 
     def _parse_nested_query(self):
+        # Quitamos el parentesis izquierdo
+        self._next_token()
+
         initial_depth = self.depth
         self.depth += 1
         tree = None
-        while initial_depth != self.depth and self.lexer.cur_token != DoneToken:
+        while initial_depth != self.depth and self.cur_token != DoneToken:
             tree = self._parse(tree)
-            self.lexer.next_token()
 
         if initial_depth != self.depth:
             raise InvalidQueryException("Unbalanced parenthesis")
 
         return tree
 
-    def _parse_infix_operation(self, operator, left):
-        right = self.lexer.cur_token
+    def _parse_infix_operation(self, left):
+        operator = self.cur_token
+        self._next_token()
+        right = self.cur_token
 
         if right == NotToken:
             right = self._parse_not_node()
         elif right.type == WORD:
-            right = WordNode(right.value)
+            right = self._parse_word_node()
         elif right == LParenToken:
-            self.lexer.next_token()
             right = self._parse_nested_query()
         else:
             raise InvalidQueryException(
@@ -63,36 +80,31 @@ class Parser:
         raise InvalidQueryException(f"Expected AND or OR, got {operator.value}")
 
     def _parse(self, left):
-        token = self.lexer.cur_token
-
         if left is None:
-            if token == NotToken:
-                self.lexer.next_token()
+            if self.cur_token == NotToken:
                 return self._parse_not_node()
-            elif token.type == WORD:
-                return WordNode(token.value)
-            elif token == LParenToken:
-                self.lexer.next_token()
+            elif self.cur_token.type == WORD:
+                return self._parse_word_node()
+            elif self.cur_token == LParenToken:
                 return self._parse_nested_query()
             else:
                 raise InvalidQueryException(
-                    f"Expected NOT or WORD, got {token.value}"
+                    f"Expected NOT or WORD, got {self.cur_token.value}"
                 )
 
-        if token == RParenToken:
+        if self.cur_token == RParenToken:
             if self.depth == 0:
                 raise InvalidQueryException("Unbalanced parenthesis")
 
             self.depth -= 1
+            self._next_token()
             return left
 
-        self.lexer.next_token()
-        return self._parse_infix_operation(token, left)
+        return self._parse_infix_operation(left)
 
     def parse(self):
         tree = None
-        while self.lexer.cur_token != DoneToken:
+        while self.cur_token != DoneToken:
             tree = self._parse(tree)
-            self.lexer.next_token()
 
         return tree
