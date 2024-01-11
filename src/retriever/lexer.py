@@ -31,10 +31,11 @@ RParenToken = Token(RPAREN, ")")
 class Lexer:
     """Lexer encargado de leer queries y traducirlas a tokens"""
 
-    def __init__(self, query):
+    def __init__(self, query: str):
         self.query = query
         self.index = 0
-        self.cur_token = None
+        # Asignado a DoneToken para que el linter sea feliz
+        self.cur_token = DoneToken
         self.next_token()
 
     def _eat_whitespace(self):

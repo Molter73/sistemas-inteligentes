@@ -48,7 +48,8 @@ class Retriever:
         """
         parser = Parser(query)
         ast = parser.parse()
-        return ast.eval(self.index)
+        ast.eval(self.index)
+        return []
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
         """Método para hacer consultas desde fichero.
@@ -75,44 +76,3 @@ class Retriever:
         """Método para cargar un índice invertido desde disco."""
         with open(self.args.index_file, "rb") as fr:
             return pkl.load(fr)
-
-    def _and_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
-        """Método para calcular la intersección de dos posting lists.
-        Será necesario para resolver queries que incluyan "A AND B"
-        en `search_query`.
-
-        Args:
-            posting_a (List[int]): una posting list
-            posting_b (List[int]): otra posting list
-        Returns:
-            List[int]: posting list de la intersección
-        """
-        ...
-        return []
-
-    def _or_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
-        """Método para calcular la unión de dos posting lists.
-        Será necesario para resolver queries que incluyan "A OR B"
-        en `search_query`.
-
-        Args:
-            posting_a (List[int]): una posting list
-            posting_b (List[int]): otra posting list
-        Returns:
-            List[int]: posting list de la unión
-        """
-        ...
-        return []
-
-    def _not_(self, posting_a: List[int]) -> List[int]:
-        """Método para calcular el complementario de una posting list.
-        Será necesario para resolver queries que incluyan "NOT A"
-        en `search_query`
-
-        Args:
-            posting_a (List[int]): una posting list
-        Returns:
-            List[int]: complementario de la posting list
-        """
-        ...
-        return []
