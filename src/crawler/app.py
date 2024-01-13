@@ -1,3 +1,5 @@
+import asyncio
+import multiprocessing
 from argparse import ArgumentParser
 
 from .crawler import Crawler
@@ -35,10 +37,19 @@ def parse_args():
         help="Carpeta destino donde almacenar el contenido"
         " de las URLs crawleadas.",
     )
+
+    parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=multiprocessing.cpu_count(),
+        help="Cantidad de consultas concurrentes",
+    )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
     crawler = Crawler(args)
-    crawler.crawl()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(crawler.crawl())
