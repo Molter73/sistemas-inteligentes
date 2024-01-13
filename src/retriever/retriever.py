@@ -5,6 +5,7 @@ from time import time
 from typing import Dict, List
 
 from ..indexer.indexer import Index  # type: ignore
+from .parser import Parser
 
 
 @dataclass
@@ -24,31 +25,6 @@ class Retriever:
     def __init__(self, args: Namespace):
         self.args = args
         self.index = self.load_index()
-
-    def _search_query(self, query: List[str], left: List[int]) -> List[int]:
-        if len(query) == 0:
-            return left
-
-        right = []
-        token = query.pop(0)
-        if token == "AND":
-            if query[0] == "NOT":
-                query.pop(0)
-                right = self._not_(self.index.postings[query.pop(0)])
-            else:
-                right = self.index.postings[query.pop(0)]
-            left = self._and_(left, right)
-        elif token == "OR":
-            if query[0] == "NOT":
-                query.pop(0)
-                right = self._not_(self.index.postings[query.pop(0)])
-            else:
-                right = self.index.postings[query.pop(0)]
-            left = self._or_(left, right)
-        else:
-            raise RuntimeError("Parametro desconocido")
-
-        return self._search_query(query, left)
 
     def search_query(self, query: str) -> List[Result]:
         """Método para resolver una query.
@@ -70,20 +46,9 @@ class Retriever:
         Returns:
             List[Result]: lista de resultados que cumplen la consulta
         """
-        import pdb
-
-        pdb.set_trace()
-        tokens = query.split()
-
-        left = []
-        if tokens[0] == "NOT":
-            tokens.pop(0)
-            left = self._not_(self.index.postings[tokens.pop(0)])
-        else:
-            left = self.index.postings[tokens.pop(0)]
-
-        self._search_query(tokens, left)
-
+        parser = Parser(query)
+        ast = parser.parse()
+        ast.eval(self.index)
         return []
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
@@ -111,44 +76,3 @@ class Retriever:
         """Método para cargar un índice invertido desde disco."""
         with open(self.args.index_file, "rb") as fr:
             return pkl.load(fr)
-
-    def _and_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
-        """Método para calcular la intersección de dos posting lists.
-        Será necesario para resolver queries que incluyan "A AND B"
-        en `search_query`.
-
-        Args:
-            posting_a (List[int]): una posting list
-            posting_b (List[int]): otra posting list
-        Returns:
-            List[int]: posting list de la intersección
-        """
-        ...
-        return []
-
-    def _or_(self, posting_a: List[int], posting_b: List[int]) -> List[int]:
-        """Método para calcular la unión de dos posting lists.
-        Será necesario para resolver queries que incluyan "A OR B"
-        en `search_query`.
-
-        Args:
-            posting_a (List[int]): una posting list
-            posting_b (List[int]): otra posting list
-        Returns:
-            List[int]: posting list de la unión
-        """
-        ...
-        return []
-
-    def _not_(self, posting_a: List[int]) -> List[int]:
-        """Método para calcular el complementario de una posting list.
-        Será necesario para resolver queries que incluyan "NOT A"
-        en `search_query`
-
-        Args:
-            posting_a (List[int]): una posting list
-        Returns:
-            List[int]: complementario de la posting list
-        """
-        ...
-        return []
