@@ -3,6 +3,9 @@ import json
 import os
 import re
 import time
+import requests
+import io
+from pypdf import PdfReader
 from argparse import Namespace
 from queue import Queue
 from typing import Set
@@ -10,13 +13,13 @@ from typing import Set
 import requests  # type: ignore
 from bs4 import BeautifulSoup
 
-
 class Crawler:
     """Clase que representa un Crawler"""
 
     def __init__(self, args: Namespace):
         self.args = args
         self.url_regex = re.compile(f"^{re.escape(self.args.url)}")
+        self.pdf_regex = re.compile(r"^\/.*\.pdf$")
         self.url_parameters_regex = re.compile(r"\?.*$")
         self.urls_visitadas: set = set()
 
@@ -31,15 +34,21 @@ class Crawler:
                 "url": url,
                 "status_code": response.status_code,
             }
-
-        urls_list = self.find_urls(response.text)
-
+        if not url.endswith(".pdf"):
+            urls_list = self.find_urls(response.text)
+            text = response.text
+            type = "html"
+        else:
+            urls_list = []
+            text = self.read_pdf(response.content)
+            type = "pdf"
         print(f"Done crawling {url}")
         return {
             "url": url,
-            "text": response.text,
+            "text": text,
             "crawled_urls": urls_list,
             "status_code": response.status_code,
+            "type": type,
         }
 
     async def crawl(self) -> None:
@@ -98,7 +107,7 @@ class Crawler:
                     if url not in urls_visitadas:
                         queue.put(url)
 
-                self.dump_data(res["url"], res["text"])
+                self.dump_data(res["url"], res["text"], res["type"])
 
     def find_urls(self, text: str) -> Set[str]:
         """Método para encontrar URLs de la Universidad Europea en el
@@ -114,14 +123,30 @@ class Crawler:
         """
         soup = BeautifulSoup(text, "html.parser")
         # re.compile trata a todos los caracteres del href como literales y no especiales.
-        urls_filtradas = [
-            link["href"] for link in soup.find_all("a", href=self.url_regex)
-        ]
+        urls_filtradas = set()
+        
+        #Buscar enlaces a páginas web
+        for link in soup.find_all("a", href=self.url_regex):
+            urls_filtradas.add(link["href"])
+        
+        #Buscar enlaces a archivos PDF
+        for link in soup.find_all("a", href=self.pdf_regex):
+            pdf_url = link["href"]
+            urls_filtradas.add(self.args.url + pdf_url)
 
-        return set(urls_filtradas)
-
-    def dump_data(self, url: str, text: str):
-        info_web = {"url": url, "text": text}
+        return urls_filtradas  
+    
+    def read_pdf (self, content: str ) -> Set[str]:
+        content_stream = io.BytesIO(content)
+        pdf = PdfReader(content_stream)
+        text = ""
+        for page in pdf.pages:
+            text += page.extract_text(0)
+            
+        return text
+  
+    def dump_data(self, url: str, text: str, type: str):
+        info_web = {"url": url, "text": text, "type": type}
 
         url_sin_prefijo = url.removeprefix("https://")
         directorio_limpio = re.sub(
