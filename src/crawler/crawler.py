@@ -125,16 +125,18 @@ class Crawler:
         """
         soup = BeautifulSoup(text, "html.parser")
         # re.compile trata a todos los caracteres del href como literales y no especiales.
-        urls_filtradas = set()
-
         # Buscar enlaces a páginas web
-        for link in soup.find_all("a", href=self.url_regex):
-            urls_filtradas.add(link["href"])
+        urls_filtradas = {
+            link["href"] for link in soup.find_all("a", href=self.url_regex)
+        }
 
         # Buscar enlaces a archivos PDF
-        for link in soup.find_all("a", href=self.pdf_regex):
-            pdf_url = link["href"]
-            urls_filtradas.add(self.args.url + pdf_url)
+        urls_filtradas.update(
+            {
+                f"{self.args.url}{link['href']}"
+                for link in soup.find_all("a", href=self.pdf_regex)
+            }
+        )
 
         return urls_filtradas
 
