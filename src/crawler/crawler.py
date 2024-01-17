@@ -1,17 +1,17 @@
 import asyncio
+import io
 import json
 import os
 import re
 import time
-import requests
-import io
-from pypdf import PdfReader
 from argparse import Namespace
 from queue import Queue
 from typing import Set
 
 import requests  # type: ignore
 from bs4 import BeautifulSoup
+from pypdf import PdfReader
+
 
 class Crawler:
     """Clase que representa un Crawler"""
@@ -34,14 +34,16 @@ class Crawler:
                 "url": url,
                 "status_code": response.status_code,
             }
+
         if not url.endswith(".pdf"):
             urls_list = self.find_urls(response.text)
             text = response.text
             type = "html"
         else:
-            urls_list = []
+            urls_list = set()
             text = self.read_pdf(response.content)
             type = "pdf"
+
         print(f"Done crawling {url}")
         return {
             "url": url,
@@ -124,27 +126,27 @@ class Crawler:
         soup = BeautifulSoup(text, "html.parser")
         # re.compile trata a todos los caracteres del href como literales y no especiales.
         urls_filtradas = set()
-        
-        #Buscar enlaces a páginas web
+
+        # Buscar enlaces a páginas web
         for link in soup.find_all("a", href=self.url_regex):
             urls_filtradas.add(link["href"])
-        
-        #Buscar enlaces a archivos PDF
+
+        # Buscar enlaces a archivos PDF
         for link in soup.find_all("a", href=self.pdf_regex):
             pdf_url = link["href"]
             urls_filtradas.add(self.args.url + pdf_url)
 
-        return urls_filtradas  
-    
-    def read_pdf (self, content: str ) -> Set[str]:
+        return urls_filtradas
+
+    def read_pdf(self, content: bytes) -> str:
         content_stream = io.BytesIO(content)
         pdf = PdfReader(content_stream)
         text = ""
         for page in pdf.pages:
             text += page.extract_text(0)
-            
+
         return text
-  
+
     def dump_data(self, url: str, text: str, type: str):
         info_web = {"url": url, "text": text, "type": type}
 

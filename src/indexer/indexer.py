@@ -81,7 +81,11 @@ class Indexer:
                 if file.endswith(".json"):
                     with open(os.path.join(curr, file), "r") as file:
                         data = json.load(file)
-                        parsed_text = self.parse(data["text"]) if data["type"] == "html" else data["text"]
+                        parsed_text = (
+                            self.parse(data["text"])
+                            if data["type"] == "html"
+                            else data["text"]
+                        )
                         parsed_text = self.remove_split_symbols(parsed_text)
                         parsed_text = self.remove_punctuation(parsed_text)
                         parsed_text = self.remove_elongated_spaces(parsed_text)
