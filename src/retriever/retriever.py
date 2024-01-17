@@ -48,8 +48,12 @@ class Retriever:
         """
         parser = Parser(query)
         ast = parser.parse()
-        ast.eval(self.index)
-        return []
+
+        return [self.int_to_result(index) for index in ast.eval(self.index)]
+
+    def int_to_result(self, index: int) -> Result:
+        res = self.index.documents[index]
+        return Result(url=res.url, snippet=res.snippet)
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
         """Método para hacer consultas desde fichero.

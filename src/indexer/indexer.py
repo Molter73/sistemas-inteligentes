@@ -3,6 +3,7 @@ import os
 import pickle as pkl
 from argparse import Namespace
 from dataclasses import dataclass, field
+from pathlib import Path
 from time import time
 from typing import Dict, List
 
@@ -18,12 +19,14 @@ class Document:
         - title: título del documento.
         - url: URL del documento.
         - text: texto del documento, parseado y limpio.
+        - snippet: extracto del texto del documento.
     """
 
     id: int
     title: str
     url: str
     text: str
+    snippet: str
 
 
 @dataclass
@@ -42,6 +45,7 @@ class Index:
 
     def save(self, output_name: str) -> None:
         """Serializa el índice (`self`) en formato binario usando Pickle"""
+        os.makedirs(os.path.dirname(output_name), exist_ok=True)
         with open(output_name, "wb") as fw:
             pkl.dump(self, fw)
 
@@ -73,19 +77,20 @@ class Indexer:
         nltk.download("stopwords")
 
     def _build_index(self, dir):
-        for curr, dirs, files in os.walk(dir):
-            for d in dirs:
-                self._build_index(os.path.join(curr, d))
-
+        for curr, _, files in os.walk(dir):
             for file in files:
                 if file.endswith(".json"):
                     with open(os.path.join(curr, file), "r") as file:
                         data = json.load(file)
-                        parsed_text = (
-                            self.parse(data["text"])
-                            if data["type"] == "html"
-                            else data["text"]
-                        )
+
+                        if data["type"] == "html":
+                            text = self.parse(data["text"])
+                            title = self.get_title(data["text"])
+                        else:
+                            text = data["text"]
+                            title = Path(data["url"]).stem
+                        snippet = f"{text[:120]}..."
+                        parsed_text = text
                         parsed_text = self.remove_split_symbols(parsed_text)
                         parsed_text = self.remove_punctuation(parsed_text)
                         parsed_text = self.remove_elongated_spaces(parsed_text)
@@ -94,9 +99,10 @@ class Indexer:
 
                         document = Document(
                             id=self.doc_id,
-                            title=data["url"],
+                            title=title,
                             url=data["url"],
                             text=" ".join(tokens),
+                            snippet=snippet,
                         )
                         self.index.documents.append(document)
                         self.doc_id += 1
@@ -218,6 +224,16 @@ class Indexer:
             str: texto sin símbolos separadores
         """
         return text.replace("\n", " ").replace("\t", " ").replace("\r", " ")
+
+    def get_title(self, text: str) -> str:
+        soup = BeautifulSoup(text, "html.parser")
+        title = soup.find("title")
+
+        if not isinstance(title, Tag):
+            return ""
+
+        # Forzamos una copia del string para evitar serializar todo el soup
+        return str(title.string)
 
     def show_stats(self, building_time: float) -> None:
         self.stats.building_time = building_time

@@ -49,6 +49,10 @@ if __name__ == "__main__":
     args = parse_args()
     retriever = Retriever(args)
     if args.query:
-        retriever.search_query(args.query)
+        for res in retriever.search_query(args.query):
+            print(res)
     elif args.file:
-        retriever.search_from_file(args.file)
+        for query, results in retriever.search_from_file(args.file).items():
+            print(f"#### {query} ####")
+            for res in results:
+                print(res)
