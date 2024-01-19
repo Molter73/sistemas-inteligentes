@@ -84,7 +84,7 @@ class WordNode(AstNode):
         self.data = data
 
     def eval(self, index: Index) -> List[int]:
-        return index.postings[self.data]
+        return index.postings.get(self.data, [])
 
     def get_words(self) -> List[str]:
         return [self.data]

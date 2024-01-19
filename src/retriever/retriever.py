@@ -6,6 +6,7 @@ from time import time
 from typing import Dict, List
 
 from ..indexer.indexer import Document, Index  # type: ignore
+from .ast import AstNode
 from .parser import Parser
 
 
@@ -28,7 +29,7 @@ class Retriever:
         self.args = args
         self.index = self.load_index()
 
-    def search_query(self, query: str) -> List[Result]:
+    def search_query(self, query: AstNode) -> List[Result]:
         """Método para resolver una query.
         Este método debe ser capaz, al menos, de resolver consultas como:
         "grado AND NOT master OR docencia", con un procesado de izquierda
@@ -48,12 +49,10 @@ class Retriever:
         Returns:
             List[Result]: lista de resultados que cumplen la consulta
         """
-        parser = Parser(query)
-        ast = parser.parse()
-        terms = ast.get_words()
+        terms = query.get_words()
 
         res = [
-            self.int_to_result(index, terms) for index in ast.eval(self.index)
+            self.int_to_result(index, terms) for index in query.eval(self.index)
         ]
         res.sort(key=lambda x: x.score, reverse=True)
 
@@ -81,11 +80,11 @@ class Retriever:
             # Las siguientes dos líneas son para dejar feliz a los linters,
             # eliminarlas al implementar la versión final del código.
             n_queries = 0
-            fr.read()
 
-            for line in fr:
-                query = line.strip()
-                resultados[query] = self.search_query(query)
+            for query in fr.readlines():
+                parser = Parser(query)
+                ast = parser.parse()
+                resultados[f"{ast}"] = self.search_query(ast)
 
             te = time()
             print(f"Time to solve {n_queries}: {te - ts}")
@@ -105,6 +104,10 @@ class Retriever:
         for word in set(terms):
             if word in document.text:
                 acc += math.pow(terms.count(word), 2)
+
+        # El término no está en el documento
+        if acc == 0.0:
+            return 0.0
 
         score = tf / (document.partial_score * math.sqrt(acc))
         return score
