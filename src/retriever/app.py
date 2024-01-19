@@ -30,6 +30,14 @@ def parse_args():
         help="Ruta al fichero de texto con una query por línea",
         required=False,
     )
+    parser.add_argument(
+        "-n",
+        "--max_resultados",
+        type=int,
+        default=10,
+        help="Número de resultados",
+        required=True,
+    )
 
     # Añade aquí cualquier otro argumento que condicione
     # el funcionamiento del retriever
