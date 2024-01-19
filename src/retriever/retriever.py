@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from time import time
 from typing import Dict, List
 
-from ..indexer.indexer import Index  # type: ignore
+from ..indexer.indexer import Document, Index  # type: ignore
 from .parser import Parser
 
 
@@ -15,9 +15,10 @@ class Result:
 
     url: str
     snippet: str
+    score: float
 
     def __str__(self) -> str:
-        return f"{self.url} -> {self.snippet}"
+        return f"({self.score}) {self.url} -> {self.snippet}"
 
 
 class Retriever:
@@ -49,12 +50,19 @@ class Retriever:
         """
         parser = Parser(query)
         ast = parser.parse()
+        terms = ast.get_words()
 
-        return [self.int_to_result(index) for index in ast.eval(self.index)]
+        res = [
+            self.int_to_result(index, terms) for index in ast.eval(self.index)
+        ]
+        res.sort(key=lambda x: x.score, reverse=True)
 
-    def int_to_result(self, index: int) -> Result:
+        return res
+
+    def int_to_result(self, index: int, terms: List[str]) -> Result:
         res = self.index.documents[index]
-        return Result(url=res.url, snippet=res.snippet)
+        score = self.score(terms, res)
+        return Result(url=res.url, snippet=res.snippet, score=score)
 
     def search_from_file(self, fname: str) -> Dict[str, List[Result]]:
         """Método para hacer consultas desde fichero.
@@ -88,34 +96,15 @@ class Retriever:
         with open(self.args.index_file, "rb") as fr:
             return pkl.load(fr)
 
-    def score(
-        self, query: str, resultados: List[Result], N: float = 10.0
-    ) -> List[Result]:
-        score_results = []
-        for r in resultados:
-            score = self._calcular_tfidf_score(query, r)
-            score_results.append((r, score))
+    def score(self, terms: List[str], document: Document) -> float:
+        tf = 0
+        for term in terms:
+            tf += document.text.count(term.lower())
 
-        score_results.sort(key=lambda x: x[1], reverse=True)
+        acc = 0.0
+        for word in set(terms):
+            if word in document.text:
+                acc += math.pow(terms.count(word), 2)
 
-        return [r for r, _ in score_results[: int(N)]]
-
-    def _calcular_tfidf_score(self, query: str, resultado: Result) -> float:
-        score = 0.0
-        term_query = query.split()
-
-        """La variable ids_total_docs se sustituirá por la que contenga el
-        indice de los archivos extraidos"""
-        total_files = len(self.index.ids_total_docs)
-        for term in term_query:
-            tf = resultado.snippet.lower().count(term.lower())
-            documentos_con_termino = self._contar_documentos(term)
-
-            if documentos_con_termino > 0:
-                idf = math.log(total_files / documentos_con_termino)
-                score += tf * idf
-
+        score = tf / (document.partial_score * math.sqrt(acc))
         return score
-
-    def _contar_documentos(self, term: str) -> int:
-        return len(self.index.postings.get(term, []))

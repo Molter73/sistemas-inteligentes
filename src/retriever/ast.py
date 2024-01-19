@@ -18,6 +18,15 @@ class AstNode(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_words(self) -> List[str]:
+        """Busca y retorna el texto de todos los WordNode del árbol
+
+        Returns:
+            List[str]: Los términos de la query.
+        """
+        ...
+
 
 class AndNode(AstNode):
     def __init__(self, left: AstNode, right: AstNode):
@@ -26,6 +35,11 @@ class AndNode(AstNode):
 
     def eval(self, index: Index) -> List[int]:
         return list(set(self.left.eval(index)) & set(self.right.eval(index)))
+
+    def get_words(self) -> List[str]:
+        res = self.left.get_words()
+        res.extend(self.right.get_words())
+        return res
 
     def __str__(self):
         return f"({self.left} AND {self.right})"
@@ -41,6 +55,11 @@ class OrNode(AstNode):
             sorted(set(self.left.eval(index)) | set(self.right.eval(index)))
         )
 
+    def get_words(self) -> List[str]:
+        res = self.left.get_words()
+        res.extend(self.right.get_words())
+        return res
+
     def __str__(self):
         return f"({self.left} OR {self.right})"
 
@@ -53,6 +72,9 @@ class NotNode(AstNode):
         all_docs: set = set(doc.id for doc in index.documents)
         return list(all_docs - set(self.data.eval(index)))
 
+    def get_words(self) -> List[str]:
+        return self.data.get_words()
+
     def __str__(self):
         return f"NOT {self.data}"
 
@@ -63,6 +85,9 @@ class WordNode(AstNode):
 
     def eval(self, index: Index) -> List[int]:
         return index.postings[self.data]
+
+    def get_words(self) -> List[str]:
+        return [self.data]
 
     def __str__(self):
         return self.data

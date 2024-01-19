@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import pickle as pkl
 from argparse import Namespace
@@ -20,6 +21,7 @@ class Document:
         - url: URL del documento.
         - text: texto del documento, parseado y limpio.
         - snippet: extracto del texto del documento.
+        - partial_score: suma cuadrática de ocurrencia de términos.
     """
 
     id: int
@@ -27,6 +29,7 @@ class Document:
     url: str
     text: str
     snippet: str
+    partial_score: float
 
 
 @dataclass
@@ -97,20 +100,23 @@ class Indexer:
                         tokens = self.tokenize(parsed_text)
                         tokens = self.remove_stopwords(tokens)
 
+                        acc = 0
+                        for word in set(tokens):
+                            if word not in self.index.postings:
+                                self.index.postings[word] = []
+                            self.index.postings[word].append(self.doc_id)
+                            acc += math.pow(tokens.count(word), 2)
+
                         document = Document(
                             id=self.doc_id,
                             title=title,
                             url=data["url"],
                             text=" ".join(tokens),
                             snippet=snippet,
+                            partial_score=math.sqrt(acc),
                         )
                         self.index.documents.append(document)
                         self.doc_id += 1
-
-                        for word in set(tokens):
-                            if word not in self.index.postings:
-                                self.index.postings[word] = []
-                            self.index.postings[word].append(self.doc_id)
 
     def build_index(self) -> None:
         """Método para construir un índice.
