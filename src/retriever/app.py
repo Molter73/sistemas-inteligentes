@@ -32,10 +32,10 @@ def parse_args():
     )
     parser.add_argument(
         "-n",
-        "--max_salidas",
+        "--max_resultados",
         type=int,
         default=10,
-        help="Número de salidas",
+        help="Número de resultados",
         required=True,
     )
 
