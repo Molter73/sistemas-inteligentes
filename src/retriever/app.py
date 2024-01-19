@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 
+from .parser import Parser
 from .retriever import Retriever
 
 
@@ -49,7 +50,9 @@ if __name__ == "__main__":
     args = parse_args()
     retriever = Retriever(args)
     if args.query:
-        for res in retriever.search_query(args.query):
+        parser = Parser(args.query)
+        ast = parser.parse()
+        for res in retriever.search_query(ast):
             print(res)
     elif args.file:
         for query, results in retriever.search_from_file(args.file).items():

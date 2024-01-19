@@ -8,7 +8,7 @@ LPAREN = 4
 RPAREN = 5
 DONE = 6
 
-_ignorable_whitespace = " \t"
+_ignorable_whitespace = " \t\n"
 _delimiters = _ignorable_whitespace + "()"
 
 
