@@ -56,7 +56,7 @@ class Retriever:
         ]
         res.sort(key=lambda x: x.score, reverse=True)
 
-        return self.args.max_resultados
+        return res[: self.args.max_resultados]
 
     def int_to_result(self, index: int, terms: List[str]) -> Result:
         res = self.index.documents[index]
