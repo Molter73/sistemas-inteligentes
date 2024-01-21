@@ -36,7 +36,6 @@ def parse_args():
         type=int,
         default=10,
         help="Número de resultados",
-        required=True,
     )
 
     # Añade aquí cualquier otro argumento que condicione
